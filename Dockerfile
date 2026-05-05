@@ -84,7 +84,7 @@ RUN curl -fsSL "https://windsurf-stable.codeiumdata.com/wVxQEIWkwPUEAGf3/windsur
     && rm -rf /var/lib/apt/lists/*
 
 # ══════════════════════════════════════════════════════════════
-# 6. XDM 7.2.10 — version EXACTE (pas la dernière)
+# 6. XDM 7.2.10 — version EXACTE
 # ══════════════════════════════════════════════════════════════
 RUN mkdir -p /tmp/xdm-install \
     && wget --progress=dot:giga \
@@ -146,7 +146,7 @@ RUN npm install -g oh-my-codex 2>/dev/null \
     && npm cache clean --force
 
 # ══════════════════════════════════════════════════════════════
-# 11. PAGE noVNC — auto-connect au démarrage
+# 11. PAGE noVNC — auto-connect
 # ══════════════════════════════════════════════════════════════
 RUN printf '<!DOCTYPE html>\n<html>\n<head>\n<meta charset="utf-8">\n<title>ExenKit Desktop</title>\n<meta http-equiv="refresh" content="0; url=vnc.html?autoconnect=true&resize=scale&quality=6&compression=2">\n</head>\n<body style="background:#1a1a2e;color:#fff;font-family:monospace;text-align:center;padding-top:40px">\n<h2>ExenKit - Connexion en cours...</h2>\n<p>Debian 13 XFCE | Dev Desktop</p>\n</body>\n</html>\n' \
     > /usr/share/novnc/index.html
@@ -160,17 +160,85 @@ RUN printf '\n# --- ExenKit ---\nalias ll="ls -lah --color=auto"\nalias la="ls -
     >> /root/.bashrc
 
 # ══════════════════════════════════════════════════════════════
-# 13. STRUCTURE + SCRIPTS
+# 13. SCRIPTS EMBARQUÉS (générés dans l'image, pas copiés)
 # ══════════════════════════════════════════════════════════════
 RUN mkdir -p /var/log/supervisor /etc/supervisor/conf.d /etc/exenkit /scripts /workspace
 
-COPY supervisord.conf /etc/supervisor/conf.d/exenkit.conf
-COPY entrypoint.sh /entrypoint.sh
-COPY scripts/start-xfce.sh /scripts/start-xfce.sh
-COPY scripts/start-vnc.sh /scripts/start-vnc.sh
-COPY scripts/start-novnc.sh /scripts/start-novnc.sh
+# --- start-xfce.sh ---
+RUN printf '#!/bin/bash\n\
+export DISPLAY=:1\n\
+export HOME=/root\n\
+export USER=root\n\
+export XDG_RUNTIME_DIR=/tmp/runtime-root\n\
+export XDG_SESSION_TYPE=x11\n\
+export XDG_CURRENT_DESKTOP=XFCE\n\
+mkdir -p /tmp/runtime-root && chmod 700 /tmp/runtime-root\n\
+for i in $(seq 1 30); do\n\
+    xdpyinfo -display :1 >/dev/null 2>&1 && echo "[xfce] Xvfb pret" && break\n\
+    echo "[xfce] Attente Xvfb ($i/30)..."\n\
+    sleep 1\n\
+done\n\
+xrandr --display :1 --auto 2>/dev/null || true\n\
+if [ -z "$DBUS_SESSION_BUS_ADDRESS" ]; then\n\
+    eval $(dbus-launch --sh-syntax) 2>/dev/null || true\n\
+fi\n\
+echo "[xfce] Demarrage XFCE4..."\n\
+exec startxfce4 --display :1 2>&1\n' \
+    > /scripts/start-xfce.sh
 
-RUN chmod +x /entrypoint.sh /scripts/*.sh
+# --- start-vnc.sh ---
+RUN printf '#!/bin/bash\n\
+export DISPLAY=:1\n\
+for i in $(seq 1 40); do\n\
+    xdpyinfo -display :1 >/dev/null 2>&1 && echo "[vnc] Display :1 ok" && break\n\
+    echo "[vnc] Attente display ($i/40)..."\n\
+    sleep 1\n\
+done\n\
+sleep 4\n\
+if [ -f /root/.vnc/passwd ]; then\n\
+    AUTH_OPTS="-rfbauth /root/.vnc/passwd"\n\
+else\n\
+    AUTH_OPTS="-nopw"\n\
+fi\n\
+echo "[vnc] Demarrage x11vnc..."\n\
+exec x11vnc \\\n\
+    -display :1 \\\n\
+    $AUTH_OPTS \\\n\
+    -listen 0.0.0.0 \\\n\
+    -rfbport 5900 \\\n\
+    -xkb -ncache 10 -ncache_cr \\\n\
+    -forever -shared -repeat \\\n\
+    -cursor most 2>&1\n' \
+    > /scripts/start-vnc.sh
+
+# --- start-novnc.sh ---
+RUN printf '#!/bin/bash\n\
+for i in $(seq 1 60); do\n\
+    nc -z localhost 5900 2>/dev/null && echo "[novnc] x11vnc pret" && break\n\
+    echo "[novnc] Attente x11vnc ($i/60)..."\n\
+    sleep 1\n\
+done\n\
+NOVNC_DIR="/usr/share/novnc"\n\
+echo "[novnc] Demarrage websockify :6515 -> :5900"\n\
+exec websockify \\\n\
+    --web="$NOVNC_DIR" \\\n\
+    --heartbeat=30 \\\n\
+    6515 \\\n\
+    localhost:5900 2>&1\n' \
+    > /scripts/start-novnc.sh
+
+RUN chmod +x /scripts/start-xfce.sh /scripts/start-vnc.sh /scripts/start-novnc.sh
+
+# ══════════════════════════════════════════════════════════════
+# 14. SUPERVISORD CONFIG
+# ══════════════════════════════════════════════════════════════
+COPY supervisord.conf /etc/supervisor/conf.d/exenkit.conf
+
+# ══════════════════════════════════════════════════════════════
+# 15. ENTRYPOINT
+# ══════════════════════════════════════════════════════════════
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 WORKDIR /workspace
 EXPOSE 5900 6515
