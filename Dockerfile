@@ -3,6 +3,18 @@
 # ============================================================
 FROM debian:trixie-slim
 
+# ══════════════════════════════════════════════════════════════
+# ARGUMENTS DE CONSTRUCTION (Optionnels via .env)
+# ══════════════════════════════════════════════════════════════
+ARG INSTALL_FIREFOX=true
+ARG INSTALL_VLC=true
+ARG INSTALL_JAVA=true
+ARG INSTALL_NODEJS=true
+ARG INSTALL_WINDSURF=true
+ARG INSTALL_XDM=true
+ARG INSTALL_CLAUDE=true
+ARG INSTALL_CODEX=true
+
 LABEL maintainer="ExenKit"
 LABEL description="Debian 13 XFCE Desktop — VLC, Firefox, XDM 7.2.10, Windsurf, Claude Code, Codex, Telegram, Oh-My-Zsh"
 
@@ -21,7 +33,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # ══════════════════════════════════════════════════════════════
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates curl wget git gnupg gnupg2 \
-    apt-transport-https software-properties-common \
+    apt-transport-https \
     lsb-release xz-utils tar unzip zip bzip2 \
     locales tzdata sudo procps htop \
     net-tools iproute2 iputils-ping netcat-openbsd \
@@ -53,40 +65,45 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # ══════════════════════════════════════════════════════════════
-# 3. APPLICATIONS — Firefox, VLC, Telegram
+# 3. APPLICATIONS — Firefox, VLC, Java
 # ══════════════════════════════════════════════════════════════
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    firefox-esr \
-    vlc vlc-plugin-base vlc-plugin-video-output \
-    telegram-desktop \
-    default-jre default-jdk \
-    aria2 axel \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && \
+    PKGS="" && \
+    if [ "$INSTALL_FIREFOX" = "true" ]; then PKGS="$PKGS firefox-esr"; fi && \
+    if [ "$INSTALL_VLC" = "true" ]; then PKGS="$PKGS vlc vlc-plugin-base vlc-plugin-video-output"; fi && \
+    if [ "$INSTALL_JAVA" = "true" ]; then PKGS="$PKGS default-jre default-jdk"; fi && \
+    PKGS="$PKGS aria2 axel" && \
+    apt-get install -y --no-install-recommends $PKGS && \
+    rm -rf /var/lib/apt/lists/*
 
 # ══════════════════════════════════════════════════════════════
 # 4. NODE.JS 22 LTS
 # ══════════════════════════════════════════════════════════════
-RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+RUN if [ "$INSTALL_NODEJS" = "true" ]; then \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs \
-    && npm install -g npm@latest \
     && rm -rf /var/lib/apt/lists/* \
-    && node --version && npm --version
+    && node --version && npm --version; \
+    fi
 
 # ══════════════════════════════════════════════════════════════
 # 5. WINDSURF IDE (Codeium)
 # ══════════════════════════════════════════════════════════════
-RUN curl -fsSL "https://windsurf-stable.codeiumdata.com/wVxQEIWkwPUEAGf3/windsurf.gpg" \
+RUN if [ "$INSTALL_WINDSURF" = "true" ]; then \
+    curl -fsSL "https://windsurf-stable.codeiumdata.com/wVxQEIWkwPUEAGf3/windsurf.gpg" \
     | gpg --dearmor -o /usr/share/keyrings/windsurf-stable-archive-keyring.gpg \
     && echo "deb [signed-by=/usr/share/keyrings/windsurf-stable-archive-keyring.gpg arch=amd64] https://windsurf-stable.codeiumdata.com/wVxQEIWkwPUEAGf3/apt stable main" \
     | tee /etc/apt/sources.list.d/windsurf.list \
     && apt-get update \
     && apt-get install -y windsurf \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/*; \
+    fi
 
 # ══════════════════════════════════════════════════════════════
 # 6. XDM 7.2.10 — version EXACTE
 # ══════════════════════════════════════════════════════════════
-RUN mkdir -p /tmp/xdm-install \
+RUN if [ "$INSTALL_XDM" = "true" ]; then \
+    mkdir -p /tmp/xdm-install \
     && wget --progress=dot:giga \
         -O /tmp/xdm-install/xdm-setup-7.2.10.tar.xz \
         "https://github.com/subhra74/xdm/releases/download/7.2.10/xdm-setup-7.2.10.tar.xz" \
@@ -103,7 +120,8 @@ RUN mkdir -p /tmp/xdm-install \
     && mkdir -p /usr/share/applications \
     && printf '[Desktop Entry]\nName=XDM - Xtreme Download Manager\nComment=Gestionnaire de telechargements v7.2.10\nExec=/usr/local/bin/xdm\nIcon=xdman\nTerminal=false\nType=Application\nCategories=Network;FileTransfer;\n' \
         > /usr/share/applications/xdm.desktop \
-    && rm -rf /tmp/xdm-install
+    && rm -rf /tmp/xdm-install; \
+    fi
 
 # ══════════════════════════════════════════════════════════════
 # 7. OH MY ZSH + PLUGINS
@@ -123,19 +141,24 @@ RUN git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git /root/.oh-my-zsh 
 # ══════════════════════════════════════════════════════════════
 # 8. CLAUDE CODE (Anthropic)
 # ══════════════════════════════════════════════════════════════
-RUN npm install -g @anthropic-ai/claude-code \
-    && claude --version 2>/dev/null || echo "Claude Code installe"
+RUN if [ "$INSTALL_CLAUDE" = "true" ] && command -v npm >/dev/null 2>&1; then \
+    npm install -g @anthropic-ai/claude-code \
+    && claude --version 2>/dev/null || echo "Claude Code installe"; \
+    fi
 
 # ══════════════════════════════════════════════════════════════
 # 9. OPENAI CODEX CLI
 # ══════════════════════════════════════════════════════════════
-RUN npm install -g @openai/codex \
-    && codex --version 2>/dev/null || echo "Codex CLI installe"
+RUN if [ "$INSTALL_CODEX" = "true" ] && command -v npm >/dev/null 2>&1; then \
+    npm install -g @openai/codex \
+    && codex --version 2>/dev/null || echo "Codex CLI installe"; \
+    fi
 
 # ══════════════════════════════════════════════════════════════
 # 10. OH-MY-CODEX (commande: omx)
 # ══════════════════════════════════════════════════════════════
-RUN npm install -g oh-my-codex 2>/dev/null \
+RUN if [ "$INSTALL_CODEX" = "true" ] && command -v npm >/dev/null 2>&1; then \
+    npm install -g oh-my-codex 2>/dev/null \
     && echo "oh-my-codex installe" \
     ; if command -v omx >/dev/null 2>&1; then \
         echo "commande omx ok"; \
@@ -143,12 +166,13 @@ RUN npm install -g oh-my-codex 2>/dev/null \
         ln -sf "$(which oh-my-codex)" /usr/local/bin/omx; \
         echo "symlink omx cree"; \
     fi \
-    && npm cache clean --force
+    && npm cache clean --force; \
+    fi
 
 # ══════════════════════════════════════════════════════════════
 # 11. PAGE noVNC — auto-connect
 # ══════════════════════════════════════════════════════════════
-RUN printf '<!DOCTYPE html>\n<html>\n<head>\n<meta charset="utf-8">\n<title>ExenKit Desktop</title>\n<meta http-equiv="refresh" content="0; url=vnc.html?autoconnect=true&resize=scale&quality=6&compression=2">\n</head>\n<body style="background:#1a1a2e;color:#fff;font-family:monospace;text-align:center;padding-top:40px">\n<h2>ExenKit - Connexion en cours...</h2>\n<p>Debian 13 XFCE | Dev Desktop</p>\n</body>\n</html>\n' \
+RUN printf '<!DOCTYPE html>\n<html>\n<head>\n<meta charset="utf-8">\n<title>ExenKit Desktop</title>\n<meta http-equiv="refresh" content="0; url=vnc.html?autoconnect=true&resize=scale&quality=9&compression=0">\n</head>\n<body style="background:#1a1a2e;color:#fff;font-family:monospace;text-align:center;padding-top:40px">\n<h2>ExenKit - Connexion en cours...</h2>\n<p>Debian 13 XFCE | Dev Desktop</p>\n</body>\n</html>\n' \
     > /usr/share/novnc/index.html
 
 # ══════════════════════════════════════════════════════════════

@@ -9,6 +9,15 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - INSTALL_FIREFOX=${INSTALL_FIREFOX:-true}
+        - INSTALL_VLC=${INSTALL_VLC:-true}
+        - INSTALL_JAVA=${INSTALL_JAVA:-true}
+        - INSTALL_NODEJS=${INSTALL_NODEJS:-true}
+        - INSTALL_WINDSURF=${INSTALL_WINDSURF:-true}
+        - INSTALL_XDM=${INSTALL_XDM:-true}
+        - INSTALL_CLAUDE=${INSTALL_CLAUDE:-true}
+        - INSTALL_CODEX=${INSTALL_CODEX:-true}
     image: exenkit:latest
     container_name: exenkit-desktop
     hostname: exenkit
