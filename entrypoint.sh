@@ -77,22 +77,22 @@ mkdir -p /workspace
 xdg-user-dirs-update 2>/dev/null || true
 log_info "Dossiers créés"
 
-# ─── 6. Clés API (si fournies) ───────────────────────────────
+# ─── 6. Clés API (optionnelles) ──────────────────────────────
 log_section "Clés API"
 if [ -n "$ANTHROPIC_API_KEY" ]; then
-    log_info "ANTHROPIC_API_KEY chargée"
     echo "export ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> /root/.zshrc
     echo "export ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> /root/.bashrc
+    log_info "ANTHROPIC_API_KEY chargée → Claude Code prêt"
 else
-    log_warn "ANTHROPIC_API_KEY non définie (Claude Code désactivé)"
+    log_warn "ANTHROPIC_API_KEY non définie → ajoutez-la plus tard avec: export ANTHROPIC_API_KEY=sk-ant-..."
 fi
 
 if [ -n "$OPENAI_API_KEY" ]; then
-    log_info "OPENAI_API_KEY chargée"
     echo "export OPENAI_API_KEY=$OPENAI_API_KEY" >> /root/.zshrc
     echo "export OPENAI_API_KEY=$OPENAI_API_KEY" >> /root/.bashrc
+    log_info "OPENAI_API_KEY chargée → Codex & omx prêts"
 else
-    log_warn "OPENAI_API_KEY non définie (Codex désactivé)"
+    log_warn "OPENAI_API_KEY non définie → ajoutez-la plus tard avec: export OPENAI_API_KEY=sk-..."
 fi
 
 # ─── 7. Lancement ────────────────────────────────────────────

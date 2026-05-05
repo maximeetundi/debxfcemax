@@ -1,10 +1,8 @@
 # ============================================================
 #  ExenKit Desktop — Debian 13 XFCE Full Dev Stack
-#  noVNC : http://localhost:6080
+#  noVNC : http://localhost:6515
 #  VNC   : localhost:5900
 # ============================================================
-
-version: '3.8'
 
 services:
   exenkit:
@@ -18,28 +16,30 @@ services:
 
     ports:
       - "6515:6515"   # noVNC Web UI  → http://localhost:6515
-      - "5900:5900"   # VNC direct    → VNC client port 5900
+      - "5900:5900"   # VNC direct    → port 5900
 
     environment:
       - VNC_PASSWORD=${VNC_PASSWORD:-ExenKit2025!}
       - RESOLUTION=${RESOLUTION:-1920x1080x24}
       - TZ=${TZ:-Africa/Douala}
       - LANG=fr_FR.UTF-8
-      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      # Optionnelles — Claude Code & Codex fonctionnent sans ces clés au démarrage
+      # Renseignez-les dans .env ou directement dans le terminal du container
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
 
     volumes:
       - exenkit-home:/root
       - exenkit-projects:/workspace
-      - /dev/shm:/dev/shm        # Partagé pour les navigateurs
+      - /dev/shm:/dev/shm
 
     shm_size: '2gb'
 
     security_opt:
-      - seccomp:unconfined        # Nécessaire pour certains apps desktop
+      - seccomp:unconfined
 
     cap_add:
-      - SYS_ADMIN                 # Pour dbus / sandbox Chromium
+      - SYS_ADMIN
 
     ulimits:
       nofile:
@@ -51,7 +51,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
+      start_period: 90s
 
 volumes:
   exenkit-home:
