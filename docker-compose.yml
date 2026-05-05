@@ -1,0 +1,64 @@
+# ============================================================
+#  ExenKit Desktop — Debian 13 XFCE Full Dev Stack
+#  noVNC : http://localhost:6080
+#  VNC   : localhost:5900
+# ============================================================
+
+version: '3.8'
+
+services:
+  exenkit:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: exenkit:latest
+    container_name: exenkit-desktop
+    hostname: exenkit
+    restart: unless-stopped
+
+    ports:
+      - "6515:6515"   # noVNC Web UI  → http://localhost:6515
+      - "5900:5900"   # VNC direct    → VNC client port 5900
+
+    environment:
+      - VNC_PASSWORD=${VNC_PASSWORD:-ExenKit2025!}
+      - RESOLUTION=${RESOLUTION:-1920x1080x24}
+      - TZ=${TZ:-Africa/Douala}
+      - LANG=fr_FR.UTF-8
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+
+    volumes:
+      - exenkit-home:/root
+      - exenkit-projects:/workspace
+      - /dev/shm:/dev/shm        # Partagé pour les navigateurs
+
+    shm_size: '2gb'
+
+    security_opt:
+      - seccomp:unconfined        # Nécessaire pour certains apps desktop
+
+    cap_add:
+      - SYS_ADMIN                 # Pour dbus / sandbox Chromium
+
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6515"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+volumes:
+  exenkit-home:
+    driver: local
+  exenkit-projects:
+    driver: local
+
+networks:
+  default:
+    name: exenkit-net
