@@ -24,12 +24,20 @@ if [ -f /etc/exenkit/vnc.env ]; then
 fi
 
 # Choisir le mode auth
-if [ -f /root/.vnc/passwd ]; then
-    AUTH_OPTS="-rfbauth /root/.vnc/passwd"
+if [ -f "$HOME/.vnc/passwd" ]; then
+    AUTH_OPTS="-rfbauth $HOME/.vnc/passwd"
     echo "[start-vnc] Mode: mot de passe VNC"
 else
     AUTH_OPTS="-nopw"
     echo "[start-vnc] Mode: sans mot de passe"
+fi
+
+# Déterminer la géométrie pour x11vnc
+GEOM_OPT=""
+if [ -n "$RESOLUTION" ]; then
+    RES_WH=$(echo $RESOLUTION | cut -d'x' -f1,2)
+    GEOM_OPT="-geometry $RES_WH"
+    echo "[start-vnc] Géométrie fixée: $RES_WH"
 fi
 
 echo "[start-vnc] Démarrage x11vnc sur :5900..."
@@ -39,12 +47,11 @@ exec x11vnc \
     $AUTH_OPTS \
     -listen 0.0.0.0 \
     -rfbport 5900 \
+    $GEOM_OPT \
     -xkb \
-    -ncache 10 \
-    -ncache_cr \
     -forever \
     -shared \
     -repeat \
     -cursor most \
-    -env FD_XDM=1 \
     2>&1
+

@@ -38,7 +38,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
 
     volumes:
-      - exenkit-home:/root
+      - exenkit-home:/home/exenkit
       - exenkit-projects:/workspace
       - /dev/shm:/dev/shm
 

@@ -23,7 +23,7 @@ banner() {
     echo "  ███████╗██╔╝ ██╗███████╗██║ ╚████║██║  ██╗██║   ██║   "
     echo "  ╚══════╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝  ╚═╝╚═╝   ╚═╝   "
     echo -e "${NC}"
-    echo -e "  ${YELLOW}Debian 13 XFCE | Dev Desktop Suite${NC}"
+    echo -e "  ${YELLOW}Debian 13 LXQt | Dev Desktop Suite${NC}"
     echo "  ─────────────────────────────────────────────────────"
     echo ""
 }
@@ -49,13 +49,13 @@ log_info "Résolution: $RESOLUTION"
 
 # ─── 3. Mot de passe VNC ─────────────────────────────────────
 log_section "Configuration VNC"
-mkdir -p /root/.vnc
+mkdir -p "$HOME/.vnc"
 VNC_PASSWORD="${VNC_PASSWORD:-ExenKit2025!}"
 
 if [ -n "$VNC_PASSWORD" ]; then
-    x11vnc -storepasswd "$VNC_PASSWORD" /root/.vnc/passwd 2>/dev/null
+    x11vnc -storepasswd "$VNC_PASSWORD" "$HOME/.vnc/passwd" 2>/dev/null
     log_info "Mot de passe VNC configuré"
-    export VNC_AUTH_FLAG="-rfbauth /root/.vnc/passwd"
+    export VNC_AUTH_FLAG="-rfbauth $HOME/.vnc/passwd"
 else
     log_warn "Aucun mot de passe VNC — accès sans authentification"
     export VNC_AUTH_FLAG="-nopw"
@@ -63,36 +63,33 @@ fi
 
 # Écrire le flag pour les scripts enfants
 echo "VNC_AUTH_FLAG=$VNC_AUTH_FLAG" > /etc/exenkit/vnc.env
-chmod 600 /etc/exenkit/vnc.env
+chmod 644 /etc/exenkit/vnc.env
 
 # ─── 4. XDG Runtime ──────────────────────────────────────────
-mkdir -p /tmp/runtime-root
-chmod 700 /tmp/runtime-root
-export XDG_RUNTIME_DIR=/tmp/runtime-root
+mkdir -p "/tmp/runtime-$USER"
+chmod 700 "/tmp/runtime-$USER"
+export XDG_RUNTIME_DIR="/tmp/runtime-$USER"
+chown "$USER:$USER" "/tmp/runtime-$USER"
 
 # ─── 5. Dossiers utilisateur ─────────────────────────────────
 log_section "Dossiers"
-mkdir -p /root/{Desktop,Downloads,Documents,Projects,.config}
+mkdir -p "$HOME"/{Desktop,Downloads,Documents,Projects,.config}
 mkdir -p /workspace
-xdg-user-dirs-update 2>/dev/null || true
-log_info "Dossiers créés"
+chown -R "$USER:$USER" "$HOME" /workspace
+log_info "Dossiers configurés pour $USER"
 
 # ─── 6. Clés API (optionnelles) ──────────────────────────────
 log_section "Clés API"
 if [ -n "$ANTHROPIC_API_KEY" ]; then
-    echo "export ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> /root/.zshrc
-    echo "export ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> /root/.bashrc
+    echo "export ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> "$HOME/.zshrc"
+    echo "export ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY" >> "$HOME/.bashrc"
     log_info "ANTHROPIC_API_KEY chargée → Claude Code prêt"
-else
-    log_warn "ANTHROPIC_API_KEY non définie → ajoutez-la plus tard avec: export ANTHROPIC_API_KEY=sk-ant-..."
 fi
 
 if [ -n "$OPENAI_API_KEY" ]; then
-    echo "export OPENAI_API_KEY=$OPENAI_API_KEY" >> /root/.zshrc
-    echo "export OPENAI_API_KEY=$OPENAI_API_KEY" >> /root/.bashrc
+    echo "export OPENAI_API_KEY=$OPENAI_API_KEY" >> "$HOME/.zshrc"
+    echo "export OPENAI_API_KEY=$OPENAI_API_KEY" >> "$HOME/.bashrc"
     log_info "OPENAI_API_KEY chargée → Codex & omx prêts"
-else
-    log_warn "OPENAI_API_KEY non définie → ajoutez-la plus tard avec: export OPENAI_API_KEY=sk-..."
 fi
 
 # ─── 7. Lancement ────────────────────────────────────────────

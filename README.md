@@ -1,6 +1,6 @@
 # 🚀 ExenKit — Debian 13 Desktop Suite
 
-> Bureau XFCE complet dans Docker, accessible depuis votre navigateur via noVNC.
+> Bureau LXQt complet dans Docker, accessible depuis votre navigateur via noVNC.
 
 ---
 
@@ -9,7 +9,7 @@
 | Outil | Description |
 |-------|-------------|
 | **Debian 13 (Trixie)** | Base système |
-| **XFCE4 + Goodies** | Bureau graphique léger |
+| **LXQt + Core Apps** | Bureau graphique léger (Qt) |
 | **noVNC** | Accès web au bureau |
 | **Firefox ESR** | Navigateur web |
 | **VLC** | Lecteur multimédia |
@@ -67,7 +67,7 @@ Mot de passe VNC par défaut : `ExenKit2025!`
 
 ### Claude Code
 ```bash
-# Dans le terminal XFCE
+# Dans le terminal LXQt (QTerminal)
 claude "Explique ce code"
 claude --help
 ```
@@ -93,7 +93,7 @@ xdm     # lancer XDM Download Manager
 
 | Volume | Contenu |
 |--------|---------|
-| `exenkit-home` | `/root` — configuration & fichiers user |
+| `exenkit-home` | `/home/exenkit` — configuration & fichiers user |
 | `exenkit-projects` | `/workspace` — vos projets |
 
 ---
